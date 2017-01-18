@@ -2,7 +2,7 @@ var express = require('express');
 var util = require('./lib/utility');
 var partials = require('express-partials');
 var bodyParser = require('body-parser');
-
+var session = require('express-session');
 
 var db = require('./app/config');
 var Users = require('./app/collections/users');
@@ -18,6 +18,11 @@ app.set('view engine', 'ejs');
 app.use(partials());
 // Parse JSON (uniform resource locators)
 app.use(bodyParser.json());
+app.user(session({
+  secret: "Lentils are good for body and soul",
+  resave: false,
+  saveUninitialized: true
+}));
 // Parse forms (signup/login)
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(__dirname + '/public'));
@@ -80,6 +85,44 @@ function(req, res) {
       });
     }
   });
+});
+
+
+app.post('/signup',
+function(req, res) {
+  var username = req.body.username;
+
+  new User({'username': username})
+    .fetch()
+    .then(function(thisUser){
+      console.log("Our user: " + thisUser);
+      if (!util.isValidUrl(uri)) {
+        console.log('Not a valid url: ', uri);
+        return res.sendStatus(404);
+      }
+      new Link({ url: uri }).fetch().then(function(found) {
+        if (found) {
+          res.status(200).send(found.attributes);
+        } else {
+          util.getUrlTitle(uri, function(err, title) {
+            if (err) {
+              console.log('Error reading URL heading: ', err);
+              return res.sendStatus(404);
+            }
+
+            Links.create({
+              url: uri,
+              title: title,
+              baseUrl: req.headers.origin
+            })
+            .then(function(newLink) {
+              res.status(200).send(newLink);
+            });
+          });
+        }
+      });
+
+    });
 });
 
 /************************************************************/

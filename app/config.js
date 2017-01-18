@@ -48,7 +48,21 @@ db.knex.schema.hasTable('users').then(function(exists) {
     });
   }
 });
+/*
+db.knex.schema.hasTable("usersUrls").then(function(exists){
+  if(!exists) {
+    db.knex.schema.createTable('usersUrls', function () {
+      usersUrls.increments('id').primary();
+      usersUrls.integer("userid").references('users.id');
+      usersUrls.integer('urlid').references('urls.id');
+      usersUrls.timestamps();
+    }).then(function (table) {
+      console.log('Created Table usersUrls');
+    });
+  }
+});
 
+*/
 /************************************************************/
 // Add additional schema definitions below
 /************************************************************/
