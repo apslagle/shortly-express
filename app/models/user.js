@@ -7,13 +7,23 @@ var User = db.Model.extend({
   hasTimestamps: true,
 
   initialize: function() {
-    this.on('creating', function(model, attrs, options) {
-      model.set('username', username);
-      model.set('password', bcrypt.hash(password));
+    this.on('creating', this.hashPassword);
+  },
+
+  comparePasswords: function(password, cb) {
+    bcrypt.compare(password, this.get('password'), function(err, match) {
+      cb(match);
     });
+  },
+
+  hashPassword: function(){
+    var promisifiedHash = Promise.promisify(bcrypt.hash);
+    return promisifiedHash(this.get('password'), null, null).bind(this)
+    .then(function(hash) {
+      this.set('password', hash);
+    })
   }
+
 });
 
 module.exports = User;
-
-//need to determine where/how we're passing in username and password

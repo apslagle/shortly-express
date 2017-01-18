@@ -18,7 +18,7 @@ app.set('view engine', 'ejs');
 app.use(partials());
 // Parse JSON (uniform resource locators)
 app.use(bodyParser.json());
-app.user(session({
+app.use(session({
   secret: "Lentils are good for body and soul",
   resave: false,
   saveUninitialized: true
@@ -28,12 +28,12 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(__dirname + '/public'));
 
 
-app.get('/',
+app.get('/', util.checkUser,
 function(req, res) {
   res.render('index');
 });
 
-app.get('/create',
+app.get('/create', util.checkUser,
 function(req, res) {
   res.render('index');
 });
@@ -48,7 +48,7 @@ function(req, res) {
   res.render('signup');
 });
 
-app.get('/links',
+app.get('/links', util.checkUser,
 function(req, res) {
   Links.reset().fetch().then(function(links) {
     res.status(200).send(links.models);
@@ -91,39 +91,55 @@ function(req, res) {
 app.post('/signup',
 function(req, res) {
   var username = req.body.username;
+  var password = req.body.password;
 
   new User({'username': username})
     .fetch()
-    .then(function(thisUser){
-      console.log("Our user: " + thisUser);
-      if (!util.isValidUrl(uri)) {
-        console.log('Not a valid url: ', uri);
-        return res.sendStatus(404);
-      }
-      new Link({ url: uri }).fetch().then(function(found) {
-        if (found) {
-          res.status(200).send(found.attributes);
-        } else {
-          util.getUrlTitle(uri, function(err, title) {
-            if (err) {
-              console.log('Error reading URL heading: ', err);
-              return res.sendStatus(404);
-            }
-
-            Links.create({
-              url: uri,
-              title: title,
-              baseUrl: req.headers.origin
-            })
-            .then(function(newLink) {
-              res.status(200).send(newLink);
-            });
+    .then(function(user){
+      if (!user) {
+        var newUser = new User({
+          username: username,
+          password: password
+        });
+        newUser.save()
+          .then(function(newUser) {
+            util.createSession(req, res, newUser);
           });
-        }
-      });
-
+      } else {
+        res.redirect('/login');
+        console.log('This username already exists. Please sign in');
+      };
     });
 });
+
+app.post('/login',
+function(req, res) {
+  var username = req.body.username;
+  var password = req.body.password;
+
+  new User({'username': username})
+    .fetch()
+    .then(function(user){
+      if (!user) {
+        res.redirect('/login');
+      } else {
+        user.comparePasswords(password, function(match) {
+          if (match) {
+            util.createSession(req, res, user);
+          } else {
+            res.redirect('/login');
+          }
+        })
+      };
+    });
+});
+
+app.get('/logout',
+  function(req, res) {
+    req.session.destroy(function() {
+      res.redirect('/login');
+    })
+  });
 
 /************************************************************/
 // Write your authentication routes here

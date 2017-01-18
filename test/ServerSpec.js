@@ -175,7 +175,6 @@ describe('', function() {
           baseUrl: 'http://127.0.0.1:4568'
         });
         link.save().then(function() {
-          console.log(JSON.stringify("This is our link 1-->", link));
           done();
         });
       });
@@ -189,10 +188,9 @@ describe('', function() {
             'url': 'http://roflzoo.com/'
           }
         };
-        console.log(JSON.stringify("This is our link 2-->", link));
+
         requestWithSession(options, function(error, res, body) {
           var code = res.body.code;
-          console.log(JSON.stringify("This is our link 3-->", link));
           expect(code).to.equal(link.get('code'));
           done();
         });
